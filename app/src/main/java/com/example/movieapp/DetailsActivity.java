@@ -13,9 +13,32 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
+import com.google.gson.Gson;
+
+import java.io.IOException;
+
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+
 public class DetailsActivity extends AppCompatActivity {
 
     Result result;
+
+    OkHttpClient client = new OkHttpClient();
+    CastResponse castResponse;
+
+    String getData(String url) throws IOException {
+        Request request = new Request.Builder()
+                .url(url)
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            return response.body().string();
+        }
+    }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -24,10 +47,38 @@ public class DetailsActivity extends AppCompatActivity {
 
         result = (Result) getIntent().getSerializableExtra("result");
 
+        TextView movieNames = findViewById(R.id.movies_names);
+        movieNames.setText(result.getTitle());
 
-        RecyclerView movieCast = findViewById(R.id.cast_poster);
+        TextView movieDesc = findViewById(R.id.movie_synopsis);
+        movieDesc.setText(result.getOverview());
+
+        ImageView poster = findViewById(R.id.poster_small);
+
+        Glide.with(getApplicationContext())
+                .load("https://image.tmdb.org/t/p/w500"+ result.getPosterPath())
+                .centerCrop()
+                .into(poster);
+
+        RecyclerView movieCast = findViewById(R.id.castRV);
         movieCast.setLayoutManager(new LinearLayoutManager(this, RecyclerView.HORIZONTAL, false));
-        movieCast.setAdapter(new NewAdapter());
+
+
+        try {
+            String url = "https://api.themoviedb.org/3/movie/"+result.getId()+"/credits?api_key=3fa9058382669f72dcb18fb405b7a831";
+            System.out.println("URL "+url);
+            String data = getData(url);
+
+            castResponse = new Gson().fromJson(data, CastResponse.class);
+            movieCast.setAdapter(new NewAdapter());
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+
+        //
 
     }
 
